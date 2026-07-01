@@ -81,10 +81,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "우리반 친구들이 서로에게 따뜻한 한마디를 남기는 포근한 방명록 페이지" },
       { name: "author", content: "우리반 프론트엔드 개발자" },
       { property: "og:title", content: "교실 한 칸, 우리들의 방명록 📝" },
-      { property: "og:description", content: "우리반 친구들이 서로에게 따뜻한 한마디를 남기는 포근한 방명록" },
+      { property: "og:description", content: "우리반 친구들이 서로에게 따뜻한 한마디를 남기는 포근한 방명록 페이지" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "교실 한 칸, 우리들의 방명록 📝" },
+      { name: "twitter:description", content: "우리반 친구들이 서로에게 따뜻한 한마디를 남기는 포근한 방명록 페이지" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c87aa8df-5d56-47be-8058-7bc3632fd1d3/id-preview-137d69fa--b183f013-5283-4bb8-a915-1b3febcf816d.lovable.app-1782923157255.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c87aa8df-5d56-47be-8058-7bc3632fd1d3/id-preview-137d69fa--b183f013-5283-4bb8-a915-1b3febcf816d.lovable.app-1782923157255.png" },
     ],
     links: [
       {
