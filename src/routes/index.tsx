@@ -89,7 +89,7 @@ function Index() {
           우리 반 친구들에게 남기고 싶은 따뜻한 한마디, 여기 예쁘게 적어봐요 🌷
         </p>
         <nav className="nav">
-          <a href="#write" onClick={scrollTo("write")}>✏️ 방명록 쓰기</a>
+          <a href="#write" onClick={scrollTo("write")}>✏️ 방명록 작성</a>
           <a href="#list" onClick={scrollTo("list")}>💌 친구들의 한마디 보기</a>
           <a href="#rules" onClick={scrollTo("rules")}>🤝 우리반 약속</a>
         </nav>
@@ -98,7 +98,7 @@ function Index() {
 
       <main className="main">
         <section id="write" className="section">
-          <h2 className="section-title">✏️ 방명록 쓰기</h2>
+          <h2 className="section-title">✏️ 방명록 작성</h2>
           <form className="form card-shadow" onSubmit={handleSubmit}>
             <div className="row">
               <label>
