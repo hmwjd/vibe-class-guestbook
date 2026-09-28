@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useRef, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -8,7 +9,7 @@ export const Route = createFileRoute("/")({
 type ColorKey = "yellow" | "blue" | "green";
 
 interface Entry {
-  id: number;
+  id: string;
   number: number;
   name: string;
   content: string;
@@ -33,21 +34,39 @@ function formatDate(d: Date) {
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-const INITIAL: Entry[] = [
-  { id: 1, number: 1, name: "김철수", content: "우리 반 친구들 모두 사랑해! 올해도 재밌게 지내자 🌼", color: "yellow", date: "2026년 3월 4일 09:20" },
-  { id: 2, number: 15, name: "이영희", content: "쉬는 시간에 같이 놀아줘서 고마워~ 우리 오래오래 친하게 지내자!", color: "blue", date: "2026년 3월 5일 12:45" },
-  { id: 3, number: 7, name: "박민수", content: "체육시간 축구 완전 재밌었다 ⚽ 다음에도 같은 팀 하자!", color: "green", date: "2026년 3월 6일 15:10" },
-];
-
 function Index() {
-  const [entries, setEntries] = useState<Entry[]>(INITIAL);
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [number, setNumber] = useState("");
   const [name, setName] = useState("");
   const [content, setContent] = useState("");
   const [color, setColor] = useState<ColorKey>("yellow");
   const listRef = useRef<HTMLDivElement>(null);
   const lastCardRef = useRef<HTMLElement | null>(null);
-  const [lastId, setLastId] = useState<number | null>(null);
+  const [lastId, setLastId] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("guestbook_entries")
+        .select("*")
+        .order("created_at", { ascending: true });
+      if (data) {
+        setEntries(
+          data.map((row) => ({
+            id: row.id,
+            number: row.number,
+            name: row.name,
+            content: row.content,
+            color: row.color as ColorKey,
+            date: formatDate(new Date(row.created_at)),
+          })),
+        );
+      }
+      setLoading(false);
+    })();
+  }, []);
 
   useEffect(() => {
     if (lastId != null && lastCardRef.current) {
@@ -55,17 +74,25 @@ function Index() {
     }
   }, [lastId]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const n = parseInt(number, 10);
-    if (!n || !name.trim() || !content.trim()) return;
+    if (!n || !name.trim() || !content.trim() || saving) return;
+    setSaving(true);
+    const { data, error } = await supabase
+      .from("guestbook_entries")
+      .insert({ number: n, name: name.trim(), content: content.trim(), color })
+      .select()
+      .single();
+    setSaving(false);
+    if (error || !data) return;
     const newEntry: Entry = {
-      id: Date.now(),
-      number: n,
-      name: name.trim(),
-      content: content.trim(),
-      color,
-      date: formatDate(new Date()),
+      id: data.id,
+      number: data.number,
+      name: data.name,
+      content: data.content,
+      color: data.color as ColorKey,
+      date: formatDate(new Date(data.created_at)),
     };
     setEntries((prev) => [...prev, newEntry]);
     setLastId(newEntry.id);
@@ -143,7 +170,9 @@ function Index() {
                 required
               />
             </label>
-            <button type="submit" className="submit-btn">등록하기 💌</button>
+            <button type="submit" className="submit-btn" disabled={saving}>
+              {saving ? "등록 중..." : "등록하기 💌"}
+            </button>
           </form>
         </section>
 
@@ -153,8 +182,9 @@ function Index() {
           <h2 className="section-title">💌 친구들이 남긴 이야기</h2>
           <p className="count">현재 등록된 방명록: <strong>{entries.length}</strong>개</p>
           <div className="list" ref={listRef}>
+            {loading && <p className="loading-msg">방명록을 불러오는 중이에요... 🌷</p>}
             {entries.map((entry) => {
-              const style = COLOR_STYLE[entry.color];
+              const style = COLOR_STYLE[entry.color] ?? COLOR_STYLE.yellow;
               const isLast = entry.id === lastId;
               return (
                 <article
@@ -171,7 +201,7 @@ function Index() {
                       {entry.number}번
                     </span>
                     <h3 className="entry-name">{entry.name}</h3>
-                    <span className="entry-color-label">{COLOR_LABEL[entry.color]}</span>
+                    <span className="entry-color-label">{COLOR_LABEL[entry.color] ?? entry.color}</span>
                   </div>
                   <p className="entry-content">{entry.content}</p>
                   <div className="entry-date">🕒 {entry.date}</div>
@@ -315,6 +345,7 @@ const css = `
   filter: brightness(1.05);
   box-shadow: 0 10px 22px rgba(255,138,128,0.45);
 }
+.submit-btn:disabled { opacity: 0.7; cursor: default; transform: none; }
 .count {
   background: #fff;
   display: inline-block;
@@ -325,6 +356,7 @@ const css = `
   color: #6b5a58;
 }
 .count strong { color: #ff8a80; font-size: 1.15rem; }
+.loading-msg { color: #7a6b6a; }
 .list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
