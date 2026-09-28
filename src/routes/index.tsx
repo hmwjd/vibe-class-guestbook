@@ -86,7 +86,7 @@ function Index() {
       <header className="site-header">
         <h1 className="site-title">교실 한 칸, 우리들의 방명록 📝</h1>
         <p className="site-desc">
-          우리 반 친구들에게 남기고 싶은 따뜻한 한마디, 여기 예쁘게 적어봐요 🌷
+          우리 반 친구들에게 남기고 싶은 따뜻한 한마디, 여기에 예쁘게 적어봐요 🌷
         </p>
         <nav className="nav">
           <a href="#write" onClick={scrollTo("write")}>✏️ 방명록 작성</a>
