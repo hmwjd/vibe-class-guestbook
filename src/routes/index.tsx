@@ -192,17 +192,6 @@ function Index() {
               <label>
                 <span>번호</span>
                 <input
-                  type="number"
-                  min={1}
-                  value={number}
-                  onChange={(e) => setNumber(e.target.value)}
-                  placeholder="예: 3"
-                  required
-                />
-              </label>
-              <label>
-                <span>이름</span>
-                <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -218,6 +207,18 @@ function Index() {
                   <option value="blue">🌊 파란색</option>
                   <option value="green">🌱 초록색</option>
                 </select>
+              </label>
+              <label>
+                <span>비밀번호 (수정/삭제용)</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="4자 이상"
+                  minLength={4}
+                  maxLength={50}
+                  required
+                />
               </label>
             </div>
             <label className="full">
@@ -264,8 +265,44 @@ function Index() {
                     <h3 className="entry-name">{entry.name}</h3>
                     <span className="entry-color-label">{COLOR_LABEL[entry.color] ?? entry.color}</span>
                   </div>
-                  <p className="entry-content">{entry.content}</p>
-                  <div className="entry-date">🕒 {entry.date}</div>
+                  {editId === entry.id ? (
+                    <div className="edit-box">
+                      <input value={editName} maxLength={20} onChange={(e) => setEditName(e.target.value)} placeholder="이름" />
+                      <select value={editColor} onChange={(e) => setEditColor(e.target.value as ColorKey)}>
+                        <option value="yellow">🍯 노란색</option>
+                        <option value="blue">🌊 파란색</option>
+                        <option value="green">🌱 초록색</option>
+                      </select>
+                      <textarea rows={3} value={editContent} maxLength={300} onChange={(e) => setEditContent(e.target.value)} />
+                      <input type="password" value={editPw} onChange={(e) => setEditPw(e.target.value)} placeholder="비밀번호" />
+                      {cardMsg && <p className="card-msg">{cardMsg}</p>}
+                      <div className="card-actions">
+                        <button type="button" className="mini-btn" onClick={() => saveEdit(entry.id)}>저장</button>
+                        <button type="button" className="mini-btn ghost" onClick={() => setEditId(null)}>취소</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="entry-content">{entry.content}</p>
+                  )}
+                  {deleteId === entry.id && (
+                    <div className="edit-box">
+                      <input type="password" value={deletePw} onChange={(e) => setDeletePw(e.target.value)} placeholder="비밀번호를 입력하면 삭제돼요" />
+                      {cardMsg && <p className="card-msg">{cardMsg}</p>}
+                      <div className="card-actions">
+                        <button type="button" className="mini-btn danger" onClick={() => confirmDelete(entry.id)}>삭제</button>
+                        <button type="button" className="mini-btn ghost" onClick={() => setDeleteId(null)}>취소</button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="entry-foot">
+                    {editId !== entry.id && deleteId !== entry.id && (
+                      <div className="card-actions">
+                        <button type="button" className="mini-btn ghost" onClick={() => startEdit(entry)}>✏️ 수정</button>
+                        <button type="button" className="mini-btn ghost" onClick={() => startDelete(entry)}>🗑️ 삭제</button>
+                      </div>
+                    )}
+                    <div className="entry-date">🕒 {entry.date}</div>
+                  </div>
                 </article>
               );
             })}
