@@ -190,7 +190,7 @@ function Index() {
           <form className="form card-shadow" onSubmit={handleSubmit}>
             <div className="row">
               <label>
-                <span>번호</span>
+                <span>이름</span>
                 <input
                   type="text"
                   value={name}
