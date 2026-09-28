@@ -14,13 +14,82 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      guestbook_entries: {
+        Row: {
+          color: string
+          content: string
+          created_at: string
+          id: string
+          name: string
+          number: number
+          password_hash: string
+          updated_at: string
+        }
+        Insert: {
+          color?: string
+          content: string
+          created_at?: string
+          id?: string
+          name: string
+          number: number
+          password_hash: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          content?: string
+          created_at?: string
+          id?: string
+          name?: string
+          number?: number
+          password_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      add_guestbook_entry: {
+        Args: {
+          _color: string
+          _content: string
+          _name: string
+          _password: string
+        }
+        Returns: {
+          color: string
+          content: string
+          created_at: string
+          id: string
+          name: string
+          number: number
+          password_hash: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "guestbook_entries"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      delete_guestbook_entry: {
+        Args: { _id: string; _password: string }
+        Returns: boolean
+      }
+      update_guestbook_entry: {
+        Args: {
+          _color: string
+          _content: string
+          _id: string
+          _name: string
+          _password: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never
