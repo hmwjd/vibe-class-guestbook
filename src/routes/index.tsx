@@ -34,36 +34,45 @@ function formatDate(d: Date) {
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function toEntry(row: { id: string; number: number; name: string; content: string; color: string; created_at: string }): Entry {
+  return {
+    id: row.id,
+    number: row.number,
+    name: row.name,
+    content: row.content,
+    color: row.color as ColorKey,
+    date: formatDate(new Date(row.created_at)),
+  };
+}
+
 function Index() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [number, setNumber] = useState("");
   const [name, setName] = useState("");
   const [content, setContent] = useState("");
   const [color, setColor] = useState<ColorKey>("yellow");
+  const [password, setPassword] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
   const lastCardRef = useRef<HTMLElement | null>(null);
   const [lastId, setLastId] = useState<string | null>(null);
+
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [editColor, setEditColor] = useState<ColorKey>("yellow");
+  const [editPw, setEditPw] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deletePw, setDeletePw] = useState("");
+  const [cardMsg, setCardMsg] = useState("");
 
   useEffect(() => {
     (async () => {
       const { data } = await supabase
         .from("guestbook_entries")
-        .select("*")
-        .order("created_at", { ascending: true });
-      if (data) {
-        setEntries(
-          data.map((row) => ({
-            id: row.id,
-            number: row.number,
-            name: row.name,
-            content: row.content,
-            color: row.color as ColorKey,
-            date: formatDate(new Date(row.created_at)),
-          })),
-        );
-      }
+        .select("id, number, name, content, color, created_at")
+        .order("number", { ascending: true });
+      if (data) setEntries(data.map(toEntry));
       setLoading(false);
     })();
   }, []);
@@ -76,30 +85,82 @@ function Index() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const n = parseInt(number, 10);
-    if (!n || !name.trim() || !content.trim() || saving) return;
+    if (!name.trim() || !content.trim() || password.length < 4 || saving) return;
     setSaving(true);
-    const { data, error } = await supabase
-      .from("guestbook_entries")
-      .insert({ number: n, name: name.trim(), content: content.trim(), color })
-      .select()
-      .single();
+    const { data, error } = await supabase.rpc("add_guestbook_entry", {
+      _name: name.trim(),
+      _content: content.trim(),
+      _color: color,
+      _password: password,
+    });
     setSaving(false);
-    if (error || !data) return;
-    const newEntry: Entry = {
-      id: data.id,
-      number: data.number,
-      name: data.name,
-      content: data.content,
-      color: data.color as ColorKey,
-      date: formatDate(new Date(data.created_at)),
-    };
+    const row = Array.isArray(data) ? data[0] : null;
+    if (error || !row) {
+      alert("등록에 실패했어요. 다시 시도해 주세요.");
+      return;
+    }
+    const newEntry = toEntry(row);
     setEntries((prev) => [...prev, newEntry]);
     setLastId(newEntry.id);
-    setNumber("");
     setName("");
     setContent("");
     setColor("yellow");
+    setPassword("");
+  };
+
+  const startEdit = (entry: Entry) => {
+    setDeleteId(null);
+    setEditId(entry.id);
+    setEditName(entry.name);
+    setEditContent(entry.content);
+    setEditColor(entry.color);
+    setEditPw("");
+    setCardMsg("");
+  };
+
+  const startDelete = (entry: Entry) => {
+    setEditId(null);
+    setDeleteId(entry.id);
+    setDeletePw("");
+    setCardMsg("");
+  };
+
+  const saveEdit = async (id: string) => {
+    if (!editName.trim() || !editContent.trim() || !editPw) {
+      setCardMsg("이름, 내용, 비밀번호를 모두 입력해 주세요.");
+      return;
+    }
+    const { data, error } = await supabase.rpc("update_guestbook_entry", {
+      _id: id,
+      _password: editPw,
+      _name: editName.trim(),
+      _content: editContent.trim(),
+      _color: editColor,
+    });
+    if (error || !data) {
+      setCardMsg("비밀번호가 맞지 않아요 🥲");
+      return;
+    }
+    setEntries((prev) =>
+      prev.map((en) =>
+        en.id === id ? { ...en, name: editName.trim(), content: editContent.trim(), color: editColor } : en,
+      ),
+    );
+    setEditId(null);
+  };
+
+  const confirmDelete = async (id: string) => {
+    if (!deletePw) {
+      setCardMsg("비밀번호를 입력해 주세요.");
+      return;
+    }
+    const { data, error } = await supabase.rpc("delete_guestbook_entry", { _id: id, _password: deletePw });
+    if (error || !data) {
+      setCardMsg("비밀번호가 맞지 않아요 🥲");
+      return;
+    }
+    setEntries((prev) => prev.filter((en) => en.id !== id));
+    setDeleteId(null);
   };
 
   const scrollTo = (id: string) => (e: React.MouseEvent) => {
@@ -129,17 +190,6 @@ function Index() {
           <form className="form card-shadow" onSubmit={handleSubmit}>
             <div className="row">
               <label>
-                <span>번호</span>
-                <input
-                  type="number"
-                  min={1}
-                  value={number}
-                  onChange={(e) => setNumber(e.target.value)}
-                  placeholder="예: 3"
-                  required
-                />
-              </label>
-              <label>
                 <span>이름</span>
                 <input
                   type="text"
@@ -157,6 +207,18 @@ function Index() {
                   <option value="blue">🌊 파란색</option>
                   <option value="green">🌱 초록색</option>
                 </select>
+              </label>
+              <label>
+                <span>비밀번호 (수정/삭제용)</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="4자 이상"
+                  minLength={4}
+                  maxLength={50}
+                  required
+                />
               </label>
             </div>
             <label className="full">
@@ -203,8 +265,44 @@ function Index() {
                     <h3 className="entry-name">{entry.name}</h3>
                     <span className="entry-color-label">{COLOR_LABEL[entry.color] ?? entry.color}</span>
                   </div>
-                  <p className="entry-content">{entry.content}</p>
-                  <div className="entry-date">🕒 {entry.date}</div>
+                  {editId === entry.id ? (
+                    <div className="edit-box">
+                      <input value={editName} maxLength={20} onChange={(e) => setEditName(e.target.value)} placeholder="이름" />
+                      <select value={editColor} onChange={(e) => setEditColor(e.target.value as ColorKey)}>
+                        <option value="yellow">🍯 노란색</option>
+                        <option value="blue">🌊 파란색</option>
+                        <option value="green">🌱 초록색</option>
+                      </select>
+                      <textarea rows={3} value={editContent} maxLength={300} onChange={(e) => setEditContent(e.target.value)} />
+                      <input type="password" value={editPw} onChange={(e) => setEditPw(e.target.value)} placeholder="비밀번호" />
+                      {cardMsg && <p className="card-msg">{cardMsg}</p>}
+                      <div className="card-actions">
+                        <button type="button" className="mini-btn" onClick={() => saveEdit(entry.id)}>저장</button>
+                        <button type="button" className="mini-btn ghost" onClick={() => setEditId(null)}>취소</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="entry-content">{entry.content}</p>
+                  )}
+                  {deleteId === entry.id && (
+                    <div className="edit-box">
+                      <input type="password" value={deletePw} onChange={(e) => setDeletePw(e.target.value)} placeholder="비밀번호를 입력하면 삭제돼요" />
+                      {cardMsg && <p className="card-msg">{cardMsg}</p>}
+                      <div className="card-actions">
+                        <button type="button" className="mini-btn danger" onClick={() => confirmDelete(entry.id)}>삭제</button>
+                        <button type="button" className="mini-btn ghost" onClick={() => setDeleteId(null)}>취소</button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="entry-foot">
+                    {editId !== entry.id && deleteId !== entry.id && (
+                      <div className="card-actions">
+                        <button type="button" className="mini-btn ghost" onClick={() => startEdit(entry)}>✏️ 수정</button>
+                        <button type="button" className="mini-btn ghost" onClick={() => startDelete(entry)}>🗑️ 삭제</button>
+                      </div>
+                    )}
+                    <div className="entry-date">🕒 {entry.date}</div>
+                  </div>
                 </article>
               );
             })}
